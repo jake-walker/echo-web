@@ -3,7 +3,7 @@ module git.vh7.uk/jakew/echo-web/bridge
 go 1.18
 
 require (
-	git.vh7.uk/jakew/echo-go v0.0.0-20220803185705-357282c0e444
+	git.vh7.uk/jakew/echo-go v0.0.0-20220805101505-158189ae7d58
 	github.com/gorilla/websocket v1.5.0
 	github.com/rs/zerolog v1.27.0
 	github.com/samber/lo v1.27.0

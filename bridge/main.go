@@ -1,15 +1,17 @@
 package main
 
 import (
+	"encoding/json"
+	"io/ioutil"
+	"net/http"
+	"os"
+
 	echo "git.vh7.uk/jakew/echo-go"
 	"github.com/gorilla/websocket"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/samber/lo"
 	"gopkg.in/yaml.v3"
-	"io/ioutil"
-	"net/http"
-	"os"
 )
 
 type Config struct {
@@ -26,6 +28,27 @@ var upgrader = websocket.Upgrader{
 	},
 }
 
+func (h *websocketHandler) receiver(conn *websocket.Conn, client *echo.Client) {
+	defer conn.Close()
+
+	for {
+		msgs, err := client.Receive()
+		if err != nil {
+			log.Error().Err(err).Msg("failed to receive from server")
+			return
+		}
+
+		for _, msg := range msgs {
+			log.Info().Interface("msg", msg).Msg("received message")
+			bytes, err := json.Marshal(&msg)
+			if err != nil {
+				log.Error().Err(err).Msg("failed to marshal message")
+			}
+			conn.WriteMessage(websocket.TextMessage, bytes)
+		}
+	}
+}
+
 func (h *websocketHandler) socketHandler(w http.ResponseWriter, r *http.Request) {
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
@@ -40,7 +63,7 @@ func (h *websocketHandler) socketHandler(w http.ResponseWriter, r *http.Request)
 	username := r.URL.Query().Get("username")
 	password := r.URL.Query().Get("password")
 
-	if !lo.Contains[string](h.config.AllowedServers, server) {
+	if !lo.Contains(h.config.AllowedServers, server) {
 		_ = conn.WriteMessage(websocket.TextMessage, []byte("{\"error\": \"Server not allowed\"}"))
 		return
 	}
@@ -54,34 +77,37 @@ func (h *websocketHandler) socketHandler(w http.ResponseWriter, r *http.Request)
 	}
 	defer client.Disconnect()
 
-	err = client.HandshakeLoop(password)
+	err = client.HandshakeLoop("4.0.0", password)
 	if err != nil {
 		log.Error().Err(err).Msg("failed to handshake with server")
 		_ = conn.WriteMessage(websocket.TextMessage, []byte("{\"error\": \"Failed to connect\"}"))
 		return
 	}
 
+	go h.receiver(conn, client)
+
 	for {
 		messageType, message, err := conn.ReadMessage()
 		if err != nil {
 			log.Warn().Err(err).Msg("failed to receive websocket message")
-			break
+			return
 		}
 
 		if messageType == websocket.CloseMessage {
+			log.Debug().Msg("websocket closed")
 			break
 		} else if messageType == websocket.TextMessage {
-			err = conn.WriteMessage(messageType, message)
+			var echoMessage echo.RawMessage
+			err = json.Unmarshal(message, &echoMessage)
 			if err != nil {
-				log.Warn().Err(err).Msg("failed to send websocket message")
+				log.Warn().Err(err).Msg("failed to unmarshal message")
 				break
 			}
+			client.Send(echoMessage.MessageType, echoMessage.Data, echoMessage.SubType, []string{})
 		} else {
 			log.Warn().Int("type", messageType).Bytes("message", message).Msg("message type not implemented")
 		}
 	}
-
-	log.Info().Str("address", conn.RemoteAddr().String()).Msg("websocket connection closed")
 }
 
 func main() {
