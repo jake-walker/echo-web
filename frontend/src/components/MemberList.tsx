@@ -1,11 +1,15 @@
 import { Aside, MediaQuery, Navbar, NavLink } from "@mantine/core"
+import { useSelector } from "react-redux"
+import { RootState } from "../store"
 
 function MemberList() {
+  const users = useSelector((state: RootState) => state.chat.users);
+
   return (
     <MediaQuery smallerThan="sm" styles={{ display: 'none' }}>
       <Aside p="sm" hiddenBreakpoint="sm" width={{ sm: 200, lg: 300 }}>
-        {[...Array(4)].map((e, i) => (
-          <NavLink label={`Person ${i+1}`}/>
+        {users.map((user) => (
+          <NavLink key={`user${user}`} label={user}/>
         ))}
       </Aside>
     </MediaQuery>
