@@ -7,19 +7,16 @@ interface MessageProps {
 
 function Message(props: MessageProps) {
   return (
-    <Group sx={{ flexWrap: "nowrap" }}>
-      <Avatar color={props.message.color} radius="xl" sx={{ flexGrow: 0, flexShrink: 0, marginBottom: "auto" }}>LS</Avatar>
-      <Stack spacing="xs" sx={{ flexGrow: 1, flexShrink: 1 }}>
-        <Text>
-          {props.message.author}
-          {' '}
-          <Text component="span" size="sm" my="auto" color="dimmed">at {props.message.date}</Text>
-        </Text>
-        <Text>
-          {props.message.content}
-        </Text>
-      </Stack>
-    </Group>
+    <Stack spacing={0} sx={{ flexGrow: 1, flexShrink: 1 }}>
+      <Text>
+        <Text component="span" color={props.message.color}>{props.message.author}</Text>
+        {' '}
+        <Text component="span" size="sm" my="auto" color="dimmed">at {props.message.date.toLocaleString()}</Text>
+      </Text>
+      <Text sx={{ whiteSpace: "pre-wrap" }}>
+        {props.message.content}
+      </Text>
+    </Stack>
   )
 }
 

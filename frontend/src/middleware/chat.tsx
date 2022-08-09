@@ -22,7 +22,8 @@ enum MessageType {
 	ResCommandData = "commandData",
 	ResChannelHistory = "channelHistory",
 	ResErrorOccurred = "errorOccured",
-	ResAdditionalHistory = "additionalHistory"
+	ResAdditionalHistory = "additionalHistory",
+  ResUserlistUpdate = "userlistUpdate"
 }
 
 interface ServerMessage {
@@ -37,7 +38,7 @@ export interface ChatMessage {
   content: string;
   author: string;
   color: string;
-  date: number;
+  date: string;
 }
 
 const defaultMetadata = ['Unknown', '#ffffff', '0'];
@@ -84,34 +85,63 @@ const chatMiddleware: Middleware = (store) => {
           case MessageType.ResServerData:
             store.dispatch(chatActions.updateChannels({ channels: JSON.parse(msg.data[0]) }));
             store.dispatch(chatActions.updateMotd({ motd: msg.data[1] }));
-            store.dispatch(chatActions.updateUsers({ users: JSON.parse(msg.data[2]).map((user) => {
+            store.dispatch(chatActions.setUsers({ users: JSON.parse(msg.data[2]).map((user: any) => {
               return user[0];
             })}));
             break;
           case MessageType.ResOutboundMessage:
-            let metadata = msg.metadata || defaultMetadata;
+            let outboundMessageMetadata = msg.metadata || defaultMetadata;
             store.dispatch(chatActions.recieveMessage({ message: {
-              author: metadata[0],
+              author: outboundMessageMetadata[0],
               content: msg.data,
-              color: metadata[1],
-              date: 0
+              color: outboundMessageMetadata[1],
+              date: (new Date(parseInt(outboundMessageMetadata[2]) * 1000)).toLocaleString()
             }}))
             break;
           case MessageType.ResCommandData:
-            metadata = msg.metadata || defaultMetadata;
+            let commandDataMetadata = msg.metadata || defaultMetadata;
             store.dispatch(chatActions.recieveMessage({ message: {
-              author: metadata[0],
-              content: msg.data,
-              color: metadata[1],
-              date: 0
+              author: commandDataMetadata[0],
+              content: msg.data.join("\n"),
+              color: commandDataMetadata[1],
+              date: (new Date(parseInt(commandDataMetadata[2]) * 1000)).toLocaleString()
             }}));
+            break;
+          case MessageType.ResChannelHistory:
+            store.dispatch(chatActions.addMessages({
+              messages: msg.data.map((message: any) => ({
+                author: message[0],
+                content: message[3],
+                color: message[4],
+                date: (new Date(parseInt(message[5]) * 1000)).toLocaleString()
+              }))
+            }))
+            break;
+          case MessageType.ResChannelUpdate:
+            const [user, fromChannel, toChannel] = msg.data;
+            store.dispatch(chatActions.updateUsers({
+              user,
+              fromChannel,
+              toChannel
+            }));
+            break;
+          case MessageType.ResConnectionTerminated:
+            store.dispatch(chatActions.recieveMessage({ message: {
+              author: "Server",
+              content: msg.data,
+              color: '#ff0000',
+              date: (new Date()).toLocaleString()
+            }}));
+            socket?.close();
+            break;
+          case MessageType.ResUserlistUpdate:
             break;
           default:
             store.dispatch(chatActions.recieveMessage({ message: {
               author: 'Server',
               content: JSON.stringify(msg),
               color: '#ff0000',
-              date: 0
+              date: (new Date()).toLocaleString()
             }}));
         }
       }

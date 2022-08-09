@@ -56,16 +56,34 @@ const chatSlice = createSlice({
     }>) => {
       state.motd = action.payload.motd;
     },
-    updateUsers: (state, action: PayloadAction<{
+    setUsers: (state, action: PayloadAction<{
       users: string[]
     }>) => {
       state.users = action.payload.users;
+    },
+    updateUsers: (state, action: PayloadAction<{
+      user: string,
+      fromChannel: string,
+      toChannel: string
+    }>) => {
+      if (action.payload.toChannel === state.currentChannel) {
+        if (!state.users.includes(action.payload.user)) {
+          state.users.push(action.payload.user);
+        }
+      } else {
+        state.users = state.users.filter((user) => user !== action.payload.user);
+      }
     },
     changeChannel: (state, action: PayloadAction<{
       channel: string
     }>) => {
       state.currentChannel = action.payload.channel;
       state.messages = [];
+    },
+    addMessages: (state, action: PayloadAction<{
+      messages: ChatMessage[]
+    }>) => {
+      state.messages.push(...action.payload.messages);
     },
     sendMessage: (state, action: PayloadAction<{
       content: string

@@ -1,4 +1,6 @@
 import { Header as MHeader, Group, Text, MediaQuery, Burger, createStyles } from '@mantine/core';
+import { useSelector } from 'react-redux';
+import { RootState } from '../store';
 
 interface HeaderProps {
   opened: boolean
@@ -18,6 +20,7 @@ const useStyles = createStyles((theme) => ({
 
 function Header(props: HeaderProps) {
   const { classes } = useStyles();
+  const channelName = useSelector((state: RootState) => state.chat.currentChannel);
 
   return (
     <MHeader height={60} p="md" sx={(theme) => ({
@@ -34,7 +37,7 @@ function Header(props: HeaderProps) {
         </MediaQuery>
         <Text size="xl" my="auto" className={classes.title}>Echo Web</Text>
         <MediaQuery smallerThan="sm" styles={{ display: 'none' }}>
-          <Text size="md" my="auto">Channel 1</Text>
+          <Text size="md" my="auto">{channelName}</Text>
         </MediaQuery>
       </Group>
     </MHeader>
