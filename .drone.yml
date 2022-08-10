@@ -3,6 +3,9 @@ kind: pipeline
 type: kubernetes
 name: deploy
 
+node_selector:
+  kubernetes.io/arch: amd64
+
 steps:
   - name: frontend-build
     image: node:lts-alpine
@@ -10,6 +13,7 @@ steps:
       - cd frontend
       - yarn install
       - yarn run build
+    depends_on: []
   - name: frontend-deploy
     image: plugins/netlify
     settings:
@@ -19,6 +23,35 @@ steps:
         from_secret: netlify_site_id
       path: ./frontend/dist
       prod: true
+    depends_on:
+      - frontend-build
+  - name: bridge-build-arm64
+    image: plugins/kaniko
+    settings:
+      username:
+        from_secret: gitea_user
+      password:
+        from_secret: gitea_token
+      registry: git.vh7.uk
+      repo: git.vh7.uk/jakew/echo-web-bridge
+      context: ./bridge
+      tags: latest-arm64
+      platform: linux/arm64
+    depends_on: []
+  - name: bridge-build-amd64
+    image: plugins/kaniko
+    settings:
+      username:
+        from_secret: gitea_user
+      password:
+        from_secret: gitea_token
+      registry: git.vh7.uk
+      repo: git.vh7.uk/jakew/echo-web-bridge
+      context: ./bridge
+      tags: latest-amd64
+      platform: linux/amd64
+    depends_on:
+      - bridge-build-arm64
 
 trigger:
   branch:
