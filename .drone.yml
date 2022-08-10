@@ -25,33 +25,34 @@ steps:
       prod: true
     depends_on:
       - frontend-build
-  - name: bridge-build-arm64
-    image: plugins/kaniko
+  - name: bridge-publish-arm64
+    image: banzaicloud/drone-kaniko
     settings:
       username:
         from_secret: gitea_user
       password:
         from_secret: gitea_token
       registry: git.vh7.uk
-      repo: git.vh7.uk/jakew/echo-web-bridge
+      repo: jakew/echo-web-bridge
       context: ./bridge
       tags: latest-arm64
       platform: linux/arm64
     depends_on: []
-  - name: bridge-build-amd64
-    image: plugins/kaniko
-    settings:
-      username:
-        from_secret: gitea_user
-      password:
-        from_secret: gitea_token
-      registry: git.vh7.uk
-      repo: git.vh7.uk/jakew/echo-web-bridge
-      context: ./bridge
-      tags: latest-amd64
-      platform: linux/amd64
-    depends_on:
-      - bridge-build-arm64
+  # - name: bridge-publish-amd64
+  #   image: banzaicloud/drone-kaniko
+  #   settings:
+  #     username:
+  #       from_secret: gitea_user
+  #     password:
+  #       from_secret: gitea_token
+  #     registry: git.vh7.uk
+  #     repo: git.vh7.uk/jakew/echo-web-bridge
+  #     context: /drone/src/bridge
+  #     dockerfile: /drone/src/bridge/Dockerfile
+  #     tags: latest-amd64
+  #     platform: linux/amd64
+  #   depends_on:
+  #     - bridge-build-arm64
 
 trigger:
   branch:
