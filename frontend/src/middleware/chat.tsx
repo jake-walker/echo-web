@@ -1,5 +1,6 @@
 import { Middleware } from "@reduxjs/toolkit";
 import chat, { chatActions } from "../slices/chat";
+import { RootState } from "../store";
 
 enum MessageType {
   ReqServerInfo = "serverInfoRequest",
@@ -48,7 +49,17 @@ const chatMiddleware: Middleware = (store) => {
 
   return (next) => (action) => {
     if (chatActions.connect.match(action) && socket === null) {
-      socket = new WebSocket("ws://127.0.0.1:4000?server=127.0.0.1:16000&username=jake&password=password");
+      const nextState: RootState = store.getState();
+
+      let connectionString = `${nextState.chat.bridgeAddress}?server=${nextState.chat.serverAddress}&username=${nextState.chat.username}`;
+      connectionString = connectionString.replace("http://", "ws://").replace("https://", "wss://");
+      if (nextState.chat.password && nextState.chat.password !== "") {
+        connectionString += `&password=${nextState.chat.password}`;
+      }
+
+      console.log(`Connecting to ${connectionString}...`);
+
+      socket = new WebSocket(connectionString);
 
       socket.onopen = () => {
         store.dispatch(chatActions.connected());

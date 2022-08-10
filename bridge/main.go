@@ -15,7 +15,7 @@ import (
 )
 
 type Config struct {
-	AllowedServers []string `yaml:"allowedServers"`
+	AllowedServers []string `yaml:"allowedServers" json:"allowedServers"`
 }
 
 type websocketHandler struct {
@@ -110,6 +110,25 @@ func (h *websocketHandler) socketHandler(w http.ResponseWriter, r *http.Request)
 	}
 }
 
+func (h *websocketHandler) configHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+
+	bytes, err := json.Marshal(h.config)
+	if err != nil {
+		log.Error().Err(err).Msg("failed to marshal config")
+		w.WriteHeader(500)
+		return
+	}
+
+	_, err = w.Write(bytes)
+	if err != nil {
+		log.Error().Err(err).Msg("failed to write bytes to response")
+		w.WriteHeader(500)
+		return
+	}
+}
+
 func main() {
 	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr})
 
@@ -130,6 +149,7 @@ func main() {
 	}
 
 	http.HandleFunc("/", handler.socketHandler)
+	http.HandleFunc("/config", handler.configHandler)
 
 	log.Info().Msg("starting server")
 	err = http.ListenAndServe(":4000", nil)

@@ -1,9 +1,11 @@
 import { Box, Button, Navbar, NavLink, Stack } from "@mantine/core";
+import { openModal } from "@mantine/modals";
 import { Root } from "react-dom/client";
 import { Hash, Settings } from "react-feather";
 import { useDispatch, useSelector } from "react-redux";
 import { chatActions } from "../slices/chat";
 import { RootState } from "../store";
+import ConnectModal from "./ConnectModal";
 
 function ChannelList(props: { hidden: boolean }) {
   const dispatch = useDispatch();
@@ -44,7 +46,7 @@ function ChannelList(props: { hidden: boolean }) {
         >
           {connectText}
         </Button>
-        <Button variant="outline">
+        <Button variant="outline" onClick={() => openModal({ title: "Settings", children: <ConnectModal /> })} >
           <Settings size={20} />
         </Button>
       </Button.Group>

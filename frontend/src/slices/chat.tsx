@@ -2,6 +2,11 @@ import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 import { ChatMessage } from "../middleware/chat";
 
 export interface ChatState {
+  bridgeAddress: string;
+  serverAddress: string;
+  username: string;
+  password?: string;
+
   messages: ChatMessage[];
   users: string[];
   channels: string[];
@@ -12,6 +17,10 @@ export interface ChatState {
 }
 
 const initialState: ChatState = {
+  bridgeAddress: "http://127.0.0.1:4000",
+  serverAddress: "127.0.0.1:16000",
+  username: "echoweb",
+
   messages: [],
   users: [],
   channels: [],
@@ -87,7 +96,18 @@ const chatSlice = createSlice({
     },
     sendMessage: (state, action: PayloadAction<{
       content: string
-    }>) => {}
+    }>) => {},
+    setConnectionParameters: (state, action: PayloadAction<{
+      bridgeAddress: string,
+      serverAddress: string,
+      username: string,
+      password?: string
+    }>) => {
+      state.bridgeAddress = action.payload.bridgeAddress;
+      state.serverAddress = action.payload.serverAddress;
+      state.username = action.payload.username;
+      state.password = action.payload.password;
+    }
   }
 });
 
