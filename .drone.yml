@@ -1,0 +1,28 @@
+---
+kind: pipeline
+type: kubernetes
+name: deploy
+
+steps:
+  - name: frontend-build
+    image: node:lts-alpine
+    commands:
+      - cd frontend
+      - yarn install
+      - yarn run build
+  - name: frontend-deploy
+    image: plugins/netlify
+    settings:
+      token:
+        from_secret: netlify_token
+      site:
+        from_secret: netlify_site_id
+      path: ./frontend/dist
+      prod: true
+
+trigger:
+  branch:
+    - main
+    - dev
+  event:
+    - push
