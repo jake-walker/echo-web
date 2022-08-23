@@ -1,3 +1,5 @@
-allowedServers:
-  - "195.201.123.169:16000"
-  - "127.0.0.1:16000"
+servers:
+  - name: "Official Echo"
+    address: "195.201.123.169:16000"
+  - name: "Local"
+    address: "127.0.0.1:16000"

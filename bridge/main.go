@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/json"
-	"io/ioutil"
 	"net/http"
 	"os"
 
@@ -10,15 +9,9 @@ import (
 	"github.com/gorilla/websocket"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
-	"github.com/samber/lo"
-	"gopkg.in/yaml.v3"
 )
 
-type Config struct {
-	AllowedServers []string `yaml:"allowedServers" json:"allowedServers"`
-}
-
-type websocketHandler struct {
+type bridge struct {
 	config Config
 }
 
@@ -28,7 +21,7 @@ var upgrader = websocket.Upgrader{
 	},
 }
 
-func (h *websocketHandler) receiver(conn *websocket.Conn, client *echo.Client) {
+func (b *bridge) receiver(conn *websocket.Conn, client *echo.Client) {
 	defer conn.Close()
 
 	for {
@@ -49,7 +42,7 @@ func (h *websocketHandler) receiver(conn *websocket.Conn, client *echo.Client) {
 	}
 }
 
-func (h *websocketHandler) socketHandler(w http.ResponseWriter, r *http.Request) {
+func (b *bridge) socketHandler(w http.ResponseWriter, r *http.Request) {
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		log.Warn().Err(err).Msg("failed to upgrade connection")
@@ -63,13 +56,21 @@ func (h *websocketHandler) socketHandler(w http.ResponseWriter, r *http.Request)
 	username := r.URL.Query().Get("username")
 	password := r.URL.Query().Get("password")
 
-	if !lo.Contains(h.config.AllowedServers, server) {
-		_ = conn.WriteMessage(websocket.TextMessage, []byte("{\"error\": \"Server not allowed\"}"))
+	var address *string
+
+	for _, configServer := range b.config.Servers {
+		if configServer.Id == server {
+			address = &configServer.Address
+		}
+	}
+
+	if address == nil {
+		_ = conn.WriteMessage(websocket.TextMessage, []byte("{\"error\": \"Invalid server ID\"}"))
 		return
 	}
 
-	log.Info().Str("dest", server).Str("user", username).Msg("creating echo client")
-	client, err := echo.New(server, username)
+	log.Info().Str("dest", *address).Str("user", username).Msg("creating echo client")
+	client, err := echo.New(*address, username)
 	if err != nil {
 		log.Error().Err(err).Msg("failed to create echo client")
 		_ = conn.WriteMessage(websocket.TextMessage, []byte("{\"error\": \"Failed to connect\"}"))
@@ -77,14 +78,14 @@ func (h *websocketHandler) socketHandler(w http.ResponseWriter, r *http.Request)
 	}
 	defer client.Disconnect()
 
-	err = client.HandshakeLoop("4.0.0", password)
+	err = client.HandshakeLoop(EchoClientVersion, password)
 	if err != nil {
 		log.Error().Err(err).Msg("failed to handshake with server")
 		_ = conn.WriteMessage(websocket.TextMessage, []byte("{\"error\": \"Failed to connect\"}"))
 		return
 	}
 
-	go h.receiver(conn, client)
+	go b.receiver(conn, client)
 
 	for {
 		messageType, message, err := conn.ReadMessage()
@@ -110,11 +111,11 @@ func (h *websocketHandler) socketHandler(w http.ResponseWriter, r *http.Request)
 	}
 }
 
-func (h *websocketHandler) configHandler(w http.ResponseWriter, r *http.Request) {
+func (b *bridge) infoHandler(w http.ResponseWriter, _ *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 
-	bytes, err := json.Marshal(h.config)
+	bytes, err := json.Marshal(GetBridgeInfo(b.config))
 	if err != nil {
 		log.Error().Err(err).Msg("failed to marshal config")
 		w.WriteHeader(500)
@@ -132,24 +133,17 @@ func (h *websocketHandler) configHandler(w http.ResponseWriter, r *http.Request)
 func main() {
 	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr})
 
-	log.Debug().Msg("loading config")
-	bytes, err := ioutil.ReadFile("config.yml")
+	config, err := LoadConfig()
 	if err != nil {
 		log.Fatal().Err(err).Msg("failed to load config file")
 	}
 
-	var config Config
-	err = yaml.Unmarshal(bytes, &config)
-	if err != nil {
-		log.Fatal().Err(err).Msg("failed to load config file")
-	}
-
-	handler := websocketHandler{
+	b := bridge{
 		config: config,
 	}
 
-	http.HandleFunc("/", handler.socketHandler)
-	http.HandleFunc("/config", handler.configHandler)
+	http.HandleFunc("/", b.socketHandler)
+	http.HandleFunc("/info", b.infoHandler)
 
 	log.Info().Msg("starting server")
 	err = http.ListenAndServe(":4000", nil)
