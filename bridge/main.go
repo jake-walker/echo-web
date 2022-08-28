@@ -81,7 +81,7 @@ func (b *bridge) socketHandler(w http.ResponseWriter, r *http.Request) {
 	err = client.HandshakeLoop(EchoClientVersion, password)
 	if err != nil {
 		log.Error().Err(err).Msg("failed to handshake with server")
-		_ = conn.WriteMessage(websocket.TextMessage, []byte("{\"error\": \"Failed to connect\"}"))
+		_ = conn.WriteMessage(websocket.TextMessage, []byte(fmt.Sprint("{\"error\": \"Failed to connect: ", err, "\"}")))
 		return
 	}
 
