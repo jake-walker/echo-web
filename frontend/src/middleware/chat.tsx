@@ -1,3 +1,4 @@
+import { showNotification } from "@mantine/notifications";
 import { Middleware } from "@reduxjs/toolkit";
 import chat, { chatActions } from "../slices/chat";
 import { RootState } from "../store";
@@ -70,6 +71,17 @@ const chatMiddleware: Middleware = (store) => {
 
       socket.onmessage = (event) => {
         const data = JSON.parse(event.data);
+
+        if (data.error) {
+          showNotification({
+            title: "Bridge Error",
+            message: `The bridge reported an error: ${data.error}`,
+            color: "orange"
+          });
+          console.warn("Bridge error", data.error);
+          return;
+        }
+
         const msg: ServerMessage = {
           userid: data.userid || '0',
           messagetype: data.messagetype,
@@ -159,6 +171,7 @@ const chatMiddleware: Middleware = (store) => {
 
       socket.onclose = () => {
         store.dispatch(chatActions.disconnected());
+        socket = null;
       }
 
       socket.onerror = (event) => {
