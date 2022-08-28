@@ -3,7 +3,7 @@ import { ChatMessage } from "../middleware/chat";
 
 export interface ChatState {
   bridgeAddress: string;
-  serverAddress: string;
+  serverId: string;
   username: string;
   password?: string;
 
@@ -17,8 +17,8 @@ export interface ChatState {
 }
 
 const initialState: ChatState = {
-  bridgeAddress: "http://127.0.0.1:4000",
-  serverAddress: "127.0.0.1:16000",
+  bridgeAddress: "https://echobridge.jakewalker.xyz",
+  serverId: "official-echo",
   username: "echoweb",
 
   messages: [],
@@ -30,9 +30,16 @@ const initialState: ChatState = {
   currentChannel: null
 };
 
+const loadPersistedState = () => {
+  return JSON.parse(localStorage.getItem('state') || "{}")
+}
+
 const chatSlice = createSlice({
   name: "chat",
-  initialState,
+  initialState: {
+    ...initialState,
+    ...loadPersistedState()
+  },
   reducers: {
     connect: (state) => {
       state.isConnected = false;
@@ -49,6 +56,13 @@ const chatSlice = createSlice({
     disconnected: (state) => {
       state.isConnected = false;
       state.isEstablishingConnection = false;
+
+      // reset most of the state
+      state.messages = [];
+      state.users = [];
+      state.channels = [];
+      state.motd = null;
+      state.currentChannel = null;
     },
     recieveMessage: (state, action: PayloadAction<{
       message: ChatMessage
@@ -99,12 +113,12 @@ const chatSlice = createSlice({
     }>) => {},
     setConnectionParameters: (state, action: PayloadAction<{
       bridgeAddress: string,
-      serverAddress: string,
+      serverId: string,
       username: string,
       password?: string
     }>) => {
       state.bridgeAddress = action.payload.bridgeAddress;
-      state.serverAddress = action.payload.serverAddress;
+      state.serverId = action.payload.serverId;
       state.username = action.payload.username;
       state.password = action.payload.password;
     }

@@ -11,5 +11,16 @@ export const store = configureStore({
   }
 });
 
+store.subscribe(() => {
+  const state = store.getState();
+
+  localStorage.setItem('state', JSON.stringify({
+    bridgeAddress: state.chat.bridgeAddress,
+    serverId: state.chat.serverId,
+    username: state.chat.username,
+    password: state.chat.password
+  }));
+});
+
 export type RootState = ReturnType<typeof store.getState>
 export type AppDispatch = typeof store.dispatch

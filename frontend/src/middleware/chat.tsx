@@ -51,7 +51,7 @@ const chatMiddleware: Middleware = (store) => {
     if (chatActions.connect.match(action) && socket === null) {
       const nextState: RootState = store.getState();
 
-      let connectionString = `${nextState.chat.bridgeAddress}?server=${nextState.chat.serverAddress}&username=${nextState.chat.username}`;
+      let connectionString = `${nextState.chat.bridgeAddress}?server=${nextState.chat.serverId}&username=${nextState.chat.username}`;
       connectionString = connectionString.replace("http://", "ws://").replace("https://", "wss://");
       if (nextState.chat.password && nextState.chat.password !== "") {
         connectionString += `&password=${nextState.chat.password}`;
