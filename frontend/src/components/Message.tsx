@@ -7,13 +7,13 @@ interface MessageProps {
 
 function Message(props: MessageProps) {
   return (
-    <Stack spacing={0} sx={{ flexGrow: 1, flexShrink: 1 }}>
+    <Stack spacing={0}>
       <Text>
         <Text component="span" color={props.message.color}>{props.message.author}</Text>
         {' '}
         <Text component="span" size="sm" my="auto" color="dimmed">at {props.message.date.toLocaleString()}</Text>
       </Text>
-      <Text sx={{ whiteSpace: "pre-wrap" }}>
+      <Text sx={{ whiteSpace: "pre-wrap", wordWrap: "break-word" }}>
         {props.message.content}
       </Text>
     </Stack>
